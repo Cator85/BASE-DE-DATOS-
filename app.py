@@ -11,10 +11,10 @@ st.set_page_config(page_title="Sistema de Turismo Astronomico", layout="wide")
 
 @st.cache_resource
 def get_engine():
-    db_host = os.environ.get("DB_HOST", "localhost")
-    db_user = os.environ.get("DB_USER", "root")
-    db_pass = os.environ.get("DB_PASS", "Pollux5907@") # Pon tu contraseña real de MySQL aqui
-    db_name = os.environ.get("DB_NAME", "turismo_astronomico")
+db_host = os.environ.get("DB_HOST", "mysql-cator.alwaysdata.net")
+    db_user = os.environ.get("DB_USER", "cator_admin")
+    db_pass = os.environ.get("DB_PASS", "Pollux5907") 
+    db_name = os.environ.get("DB_NAME", "cator_data-base")
     
     # Creamos la URL de manera limpia y estructurada para evitar errores de sintaxis
     url_conexion = URL.create(
