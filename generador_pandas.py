@@ -6,10 +6,10 @@ from sqlalchemy.engine import URL # <-- Importamos esta nueva herramienta
 import os
 
 # 1. Configuración de conexión segura a la Base de Datos
-db_host = "mysql-cator-unab.alwaysdata.net"
-db_user = "tu_usuario_creado"
-db_pass = "tu_contraseña_creada"
-db_name = "cator-unab_turismo"
+db_host = "mysql-cator.alwaysdata.net"
+db_user = "cator_admin"
+db_pass = "Pollux5907"
+db_name = "cator_data-base"
 
 # Creamos la URL de forma segura (soporta contraseñas con caracteres raros y arrobas)
 url_conexion = URL.create(
