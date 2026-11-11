@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: bd_astronomia
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: tu_contraseña
+      MYSQL_DATABASE: turismo_astronomico
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  app:
+    build: .
+    container_name: app_astronomia
+    restart: always
+    ports:
+      - "8501:8501"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASS=tu_contraseña
+      - DB_NAME=turismo_astronomico
+
+volumes:
+  mysql_data:
