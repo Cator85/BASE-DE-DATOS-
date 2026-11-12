@@ -82,7 +82,7 @@ def mostrar_dashboard():
         fig1 = px.bar(df_p1, x="Zona", y="Visitantes", color="Centro")
         st.plotly_chart(fig1, use_container_width=True)
 
-with col2:
+    with col2:
         st.subheader("2. Proporcion de Fenomenos Clasificados")
         # Aquí reemplazas el query para que las tablas estén en minúsculas:
         query_p2 = """
