@@ -65,51 +65,112 @@ def logout():
 def mostrar_dashboard():
     st.title("Dashboard de Indicadores")
 
-    # Filtro general por Centro Astronomico
+    # Filtros generales: Centro Astronomico y Periodo (Seccion 10.1)
     df_lista_centros = pd.read_sql("SELECT codigo_unico, nombre FROM CENTRO ORDER BY nombre", engine)
     opciones_centros = ["Todos los centros"] + df_lista_centros['nombre'].tolist()
-    centro_sel = st.selectbox("Filtrar analisis por Centro Astronomico:", opciones_centros)
+
+    df_fechas = pd.read_sql("SELECT MIN(fecha) AS min_f, MAX(fecha) AS max_f FROM ACTIVIDAD", engine)
+    fecha_min_bd = df_fechas['min_f'].iloc[0] or date(2024, 1, 1)
+    fecha_max_bd = df_fechas['max_f'].iloc[0] or date.today()
+
+    f_col1, f_col2, f_col3 = st.columns([2, 1, 1])
+    with f_col1:
+        centro_sel = st.selectbox("Filtrar analisis por Centro Astronomico:", opciones_centros)
+    with f_col2:
+        fecha_inicio = st.date_input("Fecha inicio (Periodo):", value=fecha_min_bd)
+    with f_col3:
+        fecha_fin = st.date_input("Fecha termino (Periodo):", value=fecha_max_bd)
 
     filtro_centro_sql = ""
+    params_p1 = {"f_ini": fecha_inicio, "f_fin": fecha_fin}
     if centro_sel != "Todos los centros":
-        filtro_centro_sql = f"AND c.nombre = '{centro_sel}'"
+        filtro_centro_sql = "AND c.nombre = :centro"
+        params_p1["centro"] = centro_sel
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("1. Zonas de Observacion con Mayor Visita")
-        query_p1 = f"""
+        query_p1 = text(f"""
             SELECT z.nombre AS Zona, c.nombre AS Centro, COUNT(r.id_visitante) AS Visitantes
             FROM RESERVA r
             JOIN ACTIVIDAD a ON r.codigo_actividad = a.codigo
             JOIN ZONA_OBSERVACION z ON a.numero_interno_zona = z.numero_interno AND a.codigo_unico_centro = z.codigo_unico_centro
             JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
-            WHERE r.asistencia_efectiva = 1 {filtro_centro_sql}
+            WHERE r.asistencia_efectiva = 1
+              AND a.fecha BETWEEN :f_ini AND :f_fin
+              {filtro_centro_sql}
             GROUP BY z.numero_interno, z.codigo_unico_centro, z.nombre, c.nombre
             ORDER BY Visitantes DESC LIMIT 10
-        """
-        df_p1 = pd.read_sql(query_p1, engine)
+        """)
+        df_p1 = pd.read_sql(query_p1, engine, params=params_p1)
         fig1 = px.bar(df_p1, x="Zona", y="Visitantes", color="Centro")
         st.plotly_chart(fig1, use_container_width=True)
 
     with col2:
         st.subheader("2. Proporcion de Fenomenos Clasificados")
-        query_p2 = """
-            SELECT 'Solar' AS Tipo, COUNT(*) AS Cantidad FROM fenomeno_solar
+
+        # Filtro de zona dependiente del centro seleccionado (Seccion 10.1)
+        if centro_sel != "Todos los centros":
+            df_zonas = pd.read_sql(
+                text("""
+                    SELECT DISTINCT z.nombre
+                    FROM ZONA_OBSERVACION z
+                    JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
+                    WHERE c.nombre = :centro
+                    ORDER BY z.nombre
+                """),
+                engine,
+                params={"centro": centro_sel}
+            )
+        else:
+            df_zonas = pd.read_sql("SELECT DISTINCT nombre FROM ZONA_OBSERVACION ORDER BY nombre", engine)
+
+        zona_sel = st.selectbox("Filtrar fenomenos por Zona:", ["Todas las zonas"] + df_zonas['nombre'].tolist())
+
+        filtros_p2 = []
+        params_p2 = {}
+        if centro_sel != "Todos los centros":
+            filtros_p2.append("c.nombre = :centro")
+            params_p2["centro"] = centro_sel
+        if zona_sel != "Todas las zonas":
+            filtros_p2.append("z.nombre = :zona")
+            params_p2["zona"] = zona_sel
+
+        where_p2 = ("WHERE " + " AND ".join(filtros_p2)) if filtros_p2 else ""
+
+        query_p2 = text(f"""
+            SELECT 'Solar' AS Tipo, COUNT(DISTINCT fs.codigo_fenomeno) AS Cantidad
+            FROM FENOMENO_SOLAR fs
+            JOIN REGISTRO_FENOMENO rf ON fs.codigo_fenomeno = rf.codigo_fenomeno
+            JOIN ZONA_OBSERVACION z ON rf.numero_interno_zona = z.numero_interno AND rf.codigo_unico_centro = z.codigo_unico_centro
+            JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
+            {where_p2}
             UNION ALL
-            SELECT 'Lunar', COUNT(*) FROM fenomeno_lunar
+            SELECT 'Lunar', COUNT(DISTINCT fl.codigo_fenomeno)
+            FROM FENOMENO_LUNAR fl
+            JOIN REGISTRO_FENOMENO rf ON fl.codigo_fenomeno = rf.codigo_fenomeno
+            JOIN ZONA_OBSERVACION z ON rf.numero_interno_zona = z.numero_interno AND rf.codigo_unico_centro = z.codigo_unico_centro
+            JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
+            {where_p2}
             UNION ALL
-            SELECT 'Espacio Profundo', COUNT(*) FROM fenomeno_espacio_profundo
-        """
-        df_p2 = pd.read_sql(query_p2, engine)
+            SELECT 'Espacio Profundo', COUNT(DISTINCT fep.codigo_fenomeno)
+            FROM FENOMENO_ESPACIO_PROFUNDO fep
+            JOIN REGISTRO_FENOMENO rf ON fep.codigo_fenomeno = rf.codigo_fenomeno
+            JOIN ZONA_OBSERVACION z ON rf.numero_interno_zona = z.numero_interno AND rf.codigo_unico_centro = z.codigo_unico_centro
+            JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
+            {where_p2}
+        """)
+        df_p2 = pd.read_sql(query_p2, engine, params=params_p2)
         fig2 = px.pie(df_p2, names='Tipo', values='Cantidad', hole=0.4)
         st.plotly_chart(fig2, use_container_width=True)
 
     st.markdown("---")
     st.subheader("3. Relacion entre Asistentes y Evaluacion Promedio por Actividad")
     try:
-        where_p3 = f"WHERE c.nombre = '{centro_sel}'" if centro_sel != "Todos los centros" else ""
-        query_p3_disp = f"""
+        where_p3 = "WHERE c.nombre = :centro" if centro_sel != "Todos los centros" else ""
+        params_p3 = {"centro": centro_sel} if centro_sel != "Todos los centros" else {}
+        query_p3_disp = text(f"""
             SELECT a.codigo AS Actividad, c.nombre AS Centro, z.nombre AS Zona,
                    COUNT(DISTINCT r.id_visitante) AS Asistentes,
                    ROUND(AVG(e.calificacion), 2) AS Evaluacion_Promedio
@@ -120,8 +181,8 @@ def mostrar_dashboard():
             LEFT JOIN EVALUACION e ON a.codigo = e.codigo_actividad
             {where_p3}
             GROUP BY a.codigo, c.nombre, z.nombre
-        """
-        df_disp = pd.read_sql(query_p3_disp, engine)
+        """)
+        df_disp = pd.read_sql(query_p3_disp, engine, params=params_p3)
         df_disp_validos = df_disp.dropna(subset=['Evaluacion_Promedio'])
 
         if not df_disp_validos.empty:
@@ -158,7 +219,8 @@ def mostrar_dashboard():
     else:
         orden_sql = "ORDER BY c.nombre ASC"
 
-    query_p4 = f"""
+    params_p4 = {"centro": centro_sel} if centro_sel != "Todos los centros" else {}
+    query_p4 = text(f"""
         SELECT c.nombre AS Centro, SUM(a.valor) AS Ingresos_Totales
         FROM RESERVA r
         JOIN ACTIVIDAD a ON r.codigo_actividad = a.codigo
@@ -166,8 +228,8 @@ def mostrar_dashboard():
         WHERE r.asistencia_efectiva = 1 {filtro_centro_sql}
         GROUP BY c.codigo_unico, c.nombre
         {orden_sql}
-    """
-    df_p4 = pd.read_sql(query_p4, engine)
+    """)
+    df_p4 = pd.read_sql(query_p4, engine, params=params_p4)
     fig4 = px.bar(df_p4, x="Ingresos_Totales", y="Centro", orientation='h')
     st.plotly_chart(fig4, use_container_width=True)
 
