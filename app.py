@@ -139,24 +139,27 @@ def mostrar_dashboard():
 
         where_p2 = ("WHERE " + " AND ".join(filtros_p2)) if filtros_p2 else ""
 
+        tablas_bd = set(pd.read_sql("SHOW TABLES", engine).iloc[:, 0].tolist())
+        tabla_reg = "registro_fenomeno" if "registro_fenomeno" in tablas_bd else "REGISTRO_FENOMENO"
+
         query_p2 = text(f"""
             SELECT 'Solar' AS Tipo, COUNT(DISTINCT fs.codigo_fenomeno) AS Cantidad
-            FROM FENOMENO_SOLAR fs
-            JOIN REGISTRO_FENOMENO rf ON fs.codigo_fenomeno = rf.codigo_fenomeno
+            FROM fenomeno_solar fs
+            JOIN {tabla_reg} rf ON fs.codigo_fenomeno = rf.codigo_fenomeno
             JOIN ZONA_OBSERVACION z ON rf.numero_interno_zona = z.numero_interno AND rf.codigo_unico_centro = z.codigo_unico_centro
             JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
             {where_p2}
             UNION ALL
             SELECT 'Lunar', COUNT(DISTINCT fl.codigo_fenomeno)
-            FROM FENOMENO_LUNAR fl
-            JOIN REGISTRO_FENOMENO rf ON fl.codigo_fenomeno = rf.codigo_fenomeno
+            FROM fenomeno_lunar fl
+            JOIN {tabla_reg} rf ON fl.codigo_fenomeno = rf.codigo_fenomeno
             JOIN ZONA_OBSERVACION z ON rf.numero_interno_zona = z.numero_interno AND rf.codigo_unico_centro = z.codigo_unico_centro
             JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
             {where_p2}
             UNION ALL
             SELECT 'Espacio Profundo', COUNT(DISTINCT fep.codigo_fenomeno)
-            FROM FENOMENO_ESPACIO_PROFUNDO fep
-            JOIN REGISTRO_FENOMENO rf ON fep.codigo_fenomeno = rf.codigo_fenomeno
+            FROM fenomeno_espacio_profundo fep
+            JOIN {tabla_reg} rf ON fep.codigo_fenomeno = rf.codigo_fenomeno
             JOIN ZONA_OBSERVACION z ON rf.numero_interno_zona = z.numero_interno AND rf.codigo_unico_centro = z.codigo_unico_centro
             JOIN CENTRO c ON z.codigo_unico_centro = c.codigo_unico
             {where_p2}
