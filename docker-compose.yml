@@ -4,7 +4,7 @@ services:
     container_name: bd_astronomia
     command: --lower_case_table_names=1
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: Pollux5907
       MYSQL_DATABASE: turismo_astronomico
     ports:
       - "3306:3306"
@@ -24,7 +24,7 @@ services:
     environment:
       DB_HOST: db
       DB_USER: root
-      DB_PASS: rootpassword
+      DB_PASS: Pollux5907
       DB_NAME: turismo_astronomico
     depends_on:
       db:
