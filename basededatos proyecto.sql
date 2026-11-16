@@ -543,15 +543,15 @@ DELIMITER ;
 -- ==============================================================================
 -- 8. SENTENCIAS DE VERIFICACIÓN EN ORDEN R1 A R12
 -- ==============================================================================
-CALL sp_zonas_mayor_visita('2024-01-01', '2026-12-31');             -- R1
-SELECT * FROM vw_distribucion_fenomenos;                            -- R2
-SELECT * FROM vw_asistentes_vs_evaluacion;                          -- R3
-CALL sp_centros_actividades_visitantes('2024-01-01', '2026-12-31'); -- R4
-SELECT * FROM vw_tasa_asistencia_zonas;                             -- R5
-SELECT * FROM vw_fenomenos_registros_zona;                          -- R6
-SELECT * FROM vw_diversidad_fenomenos_centro;                       -- R7
-SELECT * FROM vw_visitantes_mayor_participacion;                    -- R8
+CALL sp_r1_zonas_mayor_visita('2024-01-01', '2026-12-31');                 -- R1
+SELECT * FROM vista_r2_distribucion_fenomenos;                           -- R2
+SELECT * FROM vista_r3_asistencia_evaluacion;                            -- R3
+CALL sp_r4_centros_actividad_visitantes('2024-01-01', '2026-12-31');       -- R4
+SELECT * FROM vista_r5_tasa_asistencia;                                  -- R5
+SELECT * FROM vista_r6_fenomenos_por_centro_zona;                        -- R6
+SELECT * FROM vista_r7_proporcion_fenomenos;                             -- R7
+SELECT * FROM vista_r8_participacion_visitantes;                         -- R8
 CALL sp_r9_actividades_sobre_promedio('C014', '2024-01-01', '2026-12-31'); -- R9
-CALL sp_r10_zonas_mayor_oscuridad('C014');                          -- R10
-CALL sp_r11_visitantes_destacados('2024-01-01', '2026-12-31');      -- R11
-CALL sp_r12_centros_promedio_asistentes('2024-01-01', '2026-12-31');-- R12
+CALL sp_r10_zonas_mayor_oscuridad('C014');                                 -- R10
+CALL sp_r11_visitantes_destacados('2024-01-01', '2026-12-31');             -- R11
+CALL sp_r12_centros_promedio_asistentes('2024-01-01', '2026-12-31');       -- R12
